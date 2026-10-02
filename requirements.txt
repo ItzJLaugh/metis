@@ -1,0 +1,5 @@
+fastapi==0.141.1
+uvicorn==0.53.0
+python-multipart==0.0.32
+laya==0.3.24
+ollama==0.6.2
