@@ -1,83 +1,124 @@
 # Metis
 
-Metis connects your AI app (for example Claude Desktop) to the folders on your computer. When the AI needs
-something from your files, it asks Metis once. Metis finds the right file and the part of it that answers, and sends
-back only that part plus the file's path, so the AI doesn't have to read whole folders.
+**Claude connector for FASTER RETRIEVAL of context at NO cost.**
 
-Everything runs on your own computer. Your files are never copied, uploaded, or changed.
+Metis lets Claude Desktop answer from the files on your computer without reading whole folders. Claude asks Metis
+once; Metis finds the right file and the exact part that answers, and sends back only that part plus the file's path.
+Fewer tokens, faster answers, and the search itself is free: it runs on two small local models, not on paid API calls.
+Your files never leave your computer.
 
-## How it finds things
+<!-- Comparison video: Claude with vs without Metis -->
 
-Two small local models share the work:
+<!-- Screenshots of the Metis app -->
 
-- **bge-small** (an embedding model) turns text into numbers so text with similar meaning can be compared. It's fast
-  but rough.
-- **[Laya](https://github.com/NandhaKishorM/laya)** (a decision model) doesn't write text. Given a question and a
-  few options, it returns a probability for each option.
+## How it works
 
-1. **Index (once per file).** When you share a folder, Metis cuts every file into short excerpts of up to 400
-   characters (a PDF page, a Word section, an Excel row) and bge-small embeds each one. Files are re-indexed only
-   when they change. The index lives in `~/.metis/`, never in your folders.
-2. **Look up (every question), narrowing like a funnel:**
-   1. bge-small scores every excerpt against the question.
-   2. **Folders:** bge-small keeps the 6 closest folders and Laya picks among them.
-   3. **Files:** bge-small keeps 6 files from those folders, and Laya picks its top 3.
-   4. **Excerpts:** Laya answers "does this excerpt answer the question?" for the best 4 excerpts of each file.
-   5. Metis sends the best excerpt(s), or says nothing was found.
-3. **Log.** Every lookup is recorded in `~/.metis/decisions.jsonl` (question, options, Laya's probabilities, choice),
-   so Metis can be calibrated or Laya fine-tuned later.
-
-Supported files: `.txt`, `.md`, `.csv`, `.json`, `.pdf`, `.docx`, `.xlsx`.
-
-## Install
-
-Needs Python 3.10 or newer. Built and tested on Windows; macOS is untested.
-
-```
-git clone https://github.com/ItzJLaugh/metis.git
-cd metis
-python -m venv .venv
-.venv\Scripts\activate            # macOS: source .venv/bin/activate
-pip install -r connector/requirements.txt
+```mermaid
+flowchart TD
+    subgraph once["Once per file (and again only when it changes)"]
+        F["Your shared folders"] --> X["Cut into short excerpts<br/>(PDF page, Word section, Excel row)"]
+        X --> V["bge-small turns each excerpt into a vector<br/>saved in ~/.metis"]
+    end
+    subgraph ask["Every question"]
+        Q["Claude asks: 'How much does Claude Pro cost per month?'"] --> S1["1. Score every excerpt<br/>(bge-small, fast)"]
+        S1 --> S2["2. Pick the folder<br/>(Laya chooses from the closest 6)"]
+        S2 --> S3["3. Pick the file<br/>(Laya chooses from the closest 6)"]
+        S3 --> S4["4. Check the best excerpts<br/>(Laya: does this answer it?)"]
+        S4 --> R["Reply to Claude: the excerpt + file path<br/>(or 'nothing found')"]
+    end
+    V -.-> S1
 ```
 
-The first run downloads the two models from Hugging Face (about 1.5 GB in total). After that, Metis works offline.
+Two local models share the work:
 
-**Optional: NVIDIA GPU (much faster).** Close Claude Desktop and the Metis app first, then run:
+- **bge-small** (an embedding model) turns text into numbers so meaning can be compared. It's fast but rough,
+  so it narrows the options.
+- **[Laya](https://github.com/NandhaKishorM/laya)** (a decision model) doesn't write text. Given a question and a few
+  options, it returns a probability for each, so it makes the final picks.
 
-```
-pip install "torch==2.14.1+cu130" --index-url https://download.pytorch.org/whl/cu130
-```
+Each step narrows the next one, like a funnel: every excerpt → a few folders → a few files → a handful of excerpts →
+one answer. Supported files: `.txt`, `.md`, `.csv`, `.json`, `.pdf`, `.docx`, `.xlsx`. More detail:
+[docs/core.md](docs/core.md).
 
-Metis uses the GPU automatically when one is available. Set `LAYA_DEVICE=cpu` to force the CPU.
+## Install (Windows)
 
-## Set up Metis with your AI app
+You need [Python 3.10 or newer](https://www.python.org/downloads/) (tick "Add python.exe to PATH" when installing)
+and [Claude Desktop](https://claude.ai/download).
 
-1. Start the Metis desktop app: `cd connector` then `python -m metis_mcp.app`
-2. Click **+ Add folder…** and pick a folder Metis may read.
-3. Click **Connect** next to Claude Desktop.
-4. Restart Claude Desktop. Claude now has a `request` tool it uses when a question depends on your files.
+1. Download Metis: the green **Code** button → **Download ZIP**, then unzip it somewhere permanent (for example
+   `Documents\metis`). Or: `git clone https://github.com/ItzJLaugh/metis.git`
+2. Double-click **`install.bat`**. It sets up Metis in its own folder, downloads the two models (about 1.5 GB, once),
+   and adds a **Metis** shortcut to your desktop. If you have an NVIDIA GPU it offers the faster GPU version.
 
-## Measure it
+Nothing is installed system-wide. macOS and Linux are untested; see [Manual install](#manual-install).
 
-`bench/run.py` scores Metis on your own questions: right folder, right file, right part, "nothing found" when
-nothing matches, and time per question. Copy `bench/questions.example.jsonl` to `bench/questions.jsonl` and write
-questions about your shared folders, one JSON object per line: `question`, `folder` (relative to the shared folder),
-`file`, and `part` (text the answer must contain). Use `null` for questions your files can't answer. Results are
-added to `bench/results.md`. Both files describe your files, so they're git-ignored.
+## Use it
+
+1. Open **Metis** from your desktop.
+2. Click **+ Add folder…** and pick a folder Metis may read. It reads every file once, which can take a few minutes
+   for a large folder; after that only changed files are re-read.
+3. Fully quit Claude Desktop (right-click its icon in the system tray → Quit), then click **Connect** next to
+   Claude Desktop in Metis.
+4. Open Claude Desktop again.
+5. Ask Claude something your files can answer. Claude calls Metis's `request` tool and answers from the excerpt it
+   gets back, with the file's path.
+
+The app also shows what Metis shared with Claude today, has a **Test the connection** box to try a question
+yourself, and an on/off switch at the top.
+
+## Troubleshooting
+
+- **Claude doesn't use Metis:** quit Claude Desktop from the system tray (closing the window isn't enough), click
+  Connect in Metis (it should say "Connected"), then reopen Claude Desktop.
+- **The first question is slow:** Metis loads its models when Claude starts (about 10 seconds).
+- **Answers are slow (around 10 s):** that's the CPU. With an NVIDIA GPU, run `install.bat` again and answer `y`
+  to the GPU question (about 1 s per answer).
+- **A file isn't found:** check its type is supported and it isn't password-protected. Scanned PDFs (images of
+  text) have no text to read.
+
+## Privacy
+
+Metis only reads the folders you add, and never changes or uploads them. Its index, settings and logs stay in
+`%USERPROFILE%\.metis`. The models are downloaded once from Hugging Face; after that Metis works offline.
+`~/.metis/decisions.jsonl` records each lookup (question, options, choice) on your computer only, to help improve
+Metis later. To remove Metis: click **Disconnect** in the app, then delete the Metis folder and
+`%USERPROFILE%\.metis`.
+
+## How well it works
+
+On a 30-question test about real business files (25 answerable, 5 with no answer in the files), Metis returns the
+right folder 23/25, the right file 19/25 and the exact right part 16/25 times, in about 1 s per question on a
+laptop GPU or about 10 s on CPU. To measure it on your own folders, copy `bench/questions.example.jsonl` to
+`bench/questions.jsonl`, write your own questions, and run:
 
 ```
 .venv\Scripts\python bench/run.py --step "my test"
 ```
 
-## Files
+## Manual install
 
+```
+python -m venv .venv
+.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
+pip install -r connector/requirements.txt
+cd connector
+python -m metis_mcp.app
+```
+
+For an NVIDIA GPU: `pip install "torch==2.14.1+cu130" --index-url https://download.pytorch.org/whl/cu130`.
+Set `LAYA_DEVICE=cpu` to force the CPU.
+
+## Project files
+
+- `install.bat` / `install.ps1`: the installer; `start-metis.bat`: opens the app
 - `connector/metis_mcp/core.py`: indexing, search and the decision log ([docs/core.md](docs/core.md))
-- `connector/metis_mcp/server.py`: the `request` tool the AI app calls
+- `connector/metis_mcp/server.py`: the `request` tool Claude calls
 - `connector/metis_mcp/app.py` + `app.html`: the desktop app
-- `connector/compare.py`: cost and time of Claude with vs without Metis (needs an Anthropic API key)
+- `connector/compare.py`: time and token cost of Claude with vs without Metis (needs an Anthropic API key)
 - `bench/`: the benchmark scorer and an example question file
+- `docs/build-plan.md`: what's next
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE). Metis downloads Laya (Apache 2.0) and bge-small (MIT) from Hugging Face on first run; their own licenses apply to them.
+Apache License 2.0, see [LICENSE](LICENSE). Metis downloads Laya (Apache 2.0) and bge-small (MIT) from Hugging Face
+on first run; their own licenses apply to them.
