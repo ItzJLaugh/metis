@@ -45,8 +45,11 @@ Step "Installing Metis's packages (a few minutes the first time)"
 if ($LASTEXITCODE -ne 0) { Fail "Installing packages failed. Check your internet connection and run install.bat again." }
 
 # 4. Optional: NVIDIA GPU build of PyTorch (much faster lookups)
-if (-not $NoGpu -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
-    $answer = Read-Host "`nAn NVIDIA GPU was found. Install the GPU version of PyTorch for faster lookups? (about 2.5 GB) [y/N]"
+try { $gpuReady = (& $VenvPython -c "import torch; print(torch.cuda.is_available())" 2>$null) -eq "True" } catch { $gpuReady = $false }
+if ($gpuReady) {
+    Write-Host "`nThe GPU version of PyTorch is already installed: Metis will use your NVIDIA GPU."
+} elseif (-not $NoGpu -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
+    $answer = Read-Host "`nAn NVIDIA GPU was found, but Metis is set up for the CPU. Install the GPU version of PyTorch for faster lookups? (about 2.5 GB) [y/N]"
     if ($answer -match '^(y|yes)$') {
         Step "Installing PyTorch for NVIDIA GPUs"
         & $VenvPython -m pip install "torch==2.14.1+cu130" --index-url https://download.pytorch.org/whl/cu130
