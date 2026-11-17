@@ -14,20 +14,19 @@ Your files never leave your computer.
 ## How it works
 
 ```mermaid
-flowchart TD
-    subgraph once["Once per file (and again only when it changes)"]
-        F["Your shared folders"] --> X["Cut into short excerpts<br/>(PDF page, Word section, Excel row)"]
-        X --> V["bge-small turns each excerpt into a vector<br/>saved in ~/.metis"]
-    end
-    subgraph ask["Every question"]
-        Q["Claude asks: 'How much does Claude Pro cost per month?'"] --> S1["1. Score every excerpt<br/>(bge-small, fast)"]
-        S1 --> S2["2. Pick the folder<br/>(Laya chooses from the closest 6)"]
-        S2 --> S3["3. Pick the file<br/>(Laya chooses from the closest 6)"]
-        S3 --> S4["4. Check the best excerpts<br/>(Laya: does this answer it?)"]
-        S4 --> R["Reply to Claude: the excerpt + file path<br/>(or 'nothing found')"]
-    end
-    V -.-> S1
+sequenceDiagram
+    actor You
+    participant Claude as Claude Desktop
+    participant Metis as Metis (on your computer)
+    You->>Claude: How much does Claude Pro cost per month?
+    Claude->>Metis: Sends your question
+    Note over Metis: 1. Find the folders that fit<br/>2. Pick the right file<br/>3. Pick the part that answers
+    Metis-->>Claude: Returns only that part + the file's path
+    Claude-->>You: Claude Pro is $20 a month (from Budget.xlsx)
 ```
+
+Before the first question, Metis reads each shared folder once (and again only when a file changes), cutting every
+file into short excerpts it can search quickly.
 
 Two local models share the work:
 
