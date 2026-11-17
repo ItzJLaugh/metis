@@ -1,0 +1,5 @@
+{"id": 1, "question": "How much is the monthly rent?", "folder": "Home", "file": "Lease.pdf", "part": "Monthly rent: $1,250"}
+{"id": 2, "question": "When is the electricity bill due?", "folder": "Home/Bills", "file": "Bills.xlsx", "part": "Service: Electricity; Due: 2026-12-05"}
+{"id": 3, "question": "What topics does the biology midterm cover?", "folder": "School/Biology", "file": "Midterm_Study_Guide.docx", "part": "Chapters 4 to 7"}
+{"id": 4, "question": "Who is the emergency contact for the trip?", "folder": "Travel", "file": "Trip_Plan.md", "part": "Emergency contact:"}
+{"id": 5, "question": "What was the score of last night's football game?", "folder": null, "file": null, "part": null}

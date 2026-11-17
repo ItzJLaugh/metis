@@ -1,0 +1,8 @@
+mcp==2.3.0
+laya
+pywebview
+pypdf
+python-docx
+openpyxl
+sentence-transformers
+numpy

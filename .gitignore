@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.tmp
+bench/out/
+
+# Your own benchmark and its results describe your files: keep them out of git
+bench/questions.jsonl
+bench/results.md
+.claude/
+connector/.claude/

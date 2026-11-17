@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Metis</title>
+<style>
+  :root { --ink: #000; --blue: #d6ecff; --muted: #555; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #fff; color: var(--ink); font: 15px system-ui, sans-serif; }
+  main { display: flex; gap: 24px; flex-wrap: wrap; }
+  section { flex: 1 1 420px; border: 1px solid var(--ink); border-radius: 8px; padding: 24px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  h2 { font-size: 16px; margin: 24px 0 10px; }
+  hr { border: 0; border-top: 1px solid var(--ink); margin: 24px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+         border: 1px solid var(--ink); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+  button { font: inherit; background: #fff; color: var(--ink); border: 1px solid var(--ink); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+  button.blue, .toggle.on { background: var(--blue); }
+  .toggle { border-radius: 999px; padding: 6px 18px; font-weight: 600; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #aaa; margin-right: 6px; }
+  .dot.on { background: #3b9cff; }
+  input { flex: 1; font: inherit; border: 1px solid var(--ink); border-radius: 6px; padding: 8px 12px; }
+  .result { background: var(--blue); border: 1px solid var(--ink); border-radius: 6px; padding: 14px; margin-top: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<main>
+  <section>
+    <div class="top"><h1>Metis</h1><button id="toggle" class="toggle" onclick="run('toggle')"></button></div>
+    <h2>Folders Metis can see</h2>
+    <div id="folders"></div>
+    <button class="blue" onclick="addFolder(this)">+ Add folder…</button>
+    <hr>
+    <h2>Shared with your AI app today</h2>
+    <div id="shared"></div>
+  </section>
+
+  <section>
+    <h1>Connect your AI app</h1>
+    <div class="muted">Metis works with the AI app you already use. Do this once.</div>
+    <div class="row" style="margin-top:24px"><div><b>Claude Desktop</b><br><span id="claude" class="muted"></span></div><button id="connect"></button></div>
+    <div class="row"><div><b>ChatGPT</b><br><span class="muted"><span class="dot"></span>Coming later</span></div></div>
+    <div class="row"><div><b>Other AI apps</b><br><span class="muted"><span class="dot"></span>Coming later</span></div></div>
+    <hr>
+    <h2>Test the connection</h2>
+    <div style="display:flex; gap:8px"><input id="question" placeholder="What is the marketing budget for March 2026?"><button class="blue" onclick="test()">Try it</button></div>
+    <div id="result"></div>
+  </section>
+</main>
+
+<script>
+  const api = () => window.pywebview.api;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+  function show(s) {
+    toggle.textContent = s.on ? "ON" : "OFF";
+    toggle.className = "toggle" + (s.on ? " on" : "");
+    folders.innerHTML = s.folders.map(f => `<div class="row"> ${esc(f.name)}<button data-path="${esc(f.path)}" onclick="run('remove_folder', this.dataset.path)">Remove</button></div>`).join("")
+      || `<p class="muted">No folders yet. Metis can only see folders you add here.</p>`;
+    shared.innerHTML = s.shared.map(x => `<div class="row"><div><b>${esc(x.file)}</b><br><span class="muted">${esc(x.location)}</span></div><span class="muted">${esc(x.time)}</span></div>`).join("")
+      || `<p class="muted">Nothing shared yet today.</p>`;
+    claude.innerHTML = s.connected ? `<span class="dot on"></span>Connected — restart Claude Desktop if you just connected` : `<span class="dot"></span>Not connected — quit Claude Desktop first, then press Connect`;
+    connect.textContent = s.connected ? "Disconnect" : "Connect";
+    connect.onclick = () => run(s.connected ? "disconnect" : "connect");
+  }
+
+  async function run(name, ...args) { show(await api()[name](...args)); }
+
+  async function addFolder(button) {
+    button.textContent = "Labeling files…";
+    await run("add_folder");
+    button.textContent = "+ Add folder…";
+  }
+
+  async function test() {
+    result.innerHTML = `<div class="result">Searching…</div>`;
+    const r = await api().test(question.value || question.placeholder);
+    result.innerHTML = r.found
+      ? r.results.map(x => `<div class="result"><b> Context located · ${x.confidence}</b>\nFile: ${esc(x.file)}\nContext: ${esc(x.location)}\n\n${esc(x.context)}</div>`).join("")
+      : `<div class="result">${esc(r.message)}</div>`;
+  }
+
+  window.addEventListener("pywebviewready", () => run("state"));
+</script>
+</body>
+</html>
