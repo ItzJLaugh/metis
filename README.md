@@ -20,7 +20,7 @@ sequenceDiagram
     participant Metis as Metis (on your computer)
     You->>Claude: How much does Claude Pro cost per month?
     Claude->>Metis: Sends your question
-    Note over Metis: 1. Find the folders that fit<br/>2. Pick the right file<br/>3. Pick the part that answers
+    Note over Metis: 1. Pick the right file<br/>2. Pick the part that answers
     Metis-->>Claude: Returns only that part + the file's path
     Claude-->>You: Claude Pro is $20 a month (from Budget.xlsx)
 ```
@@ -35,7 +35,7 @@ Two local models share the work:
 - **[Laya](https://github.com/NandhaKishorM/laya)** (a decision model) doesn't write text. Given a question and a few
   options, it returns a probability for each, so it makes the final picks.
 
-Each step narrows the next one, like a funnel: every excerpt → a few folders → a few files → a handful of excerpts →
+Each step narrows the next one, like a funnel: every excerpt → a few files → a handful of excerpts →
 one answer. Supported files: `.txt`, `.md`, `.csv`, `.json`, `.pdf`, `.docx`, `.xlsx`. More detail:
 [docs/core.md](docs/core.md).
 
@@ -89,7 +89,7 @@ Metis later. To remove Metis: click **Disconnect** in the app, then delete the M
 JSON and text) in 14 folders. `bench/questions_sample.jsonl` has 36 questions about it: 31 answered somewhere in
 the files and 5 that aren't, where Metis should say nothing was found.
 
-On it, Metis finds the right folder 29/31, the right file 28/31 and the exact right part 26/31 times, and says
+On it, Metis finds the right folder 30/31, the right file 30/31 and the exact right part 28/31 times, and says
 "not found" for 3 of the 5 questions with no answer. A question takes about 0.3 s on a laptop GPU or about 7 s on
 the CPU.
 

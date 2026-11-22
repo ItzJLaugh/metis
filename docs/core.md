@@ -10,10 +10,10 @@ Indexing (once per file, again only when it changes)
                                   └─→ vectors ─→ ~/.metis/vectors/  {one bge-small vector per excerpt}
 
 Searching (each question)
-  question ─→ excerpt_scores ─→ pick_folders ─→ rank_files ─→ Laya yes/no on excerpts ─→ best, or "not found"
-              (bge-small +       (keep 6, Laya    (keep 6, Laya   (4 per file, one batch)
-               shared words)      picks)           picks top 3)
-                                                                                  └─→ log_decision ─→ decisions.jsonl
+  question ─→ excerpt_scores ─→ rank_files ─→ Laya yes/no on excerpts ─→ best, or "not found"
+              (bge-small +       (keep 6, Laya   (4 per file, one batch)
+               shared words)      picks top 3)
+                                                                 └─→ log_decision ─→ decisions.jsonl
 ```
 
 ## Storage: `~/.metis/`
@@ -41,11 +41,6 @@ An `index.json` entry:
 | `LAYA_MODEL` | `convaiinnovations/laya` | the English Laya checkpoint |
 | `EMBEDDERS` | bge-small, then Granite, then MiniLM | embedding models tried in order |
 | `CHUNK_CHARS` | 400 | longest excerpt; question + excerpt fit Laya's 512-token window |
-| `SEARCH` | `"funnel"` | `"funnel"`: folders → files → excerpts; `"flat"`: score every excerpt and let Laya check the best `FLAT_K` |
-| `FLAT_K` | 16 | excerpts Laya checks in the flat search |
-| `FOLDER_STEP` | True | narrow to folders before files |
-| `FOLDER_K` | 6 | folders bge-small keeps for Laya's folder choice |
-| `FOLDER_MASS` / `MAX_FOLDERS` | 0.8 / 3 | keep Laya's top folders until 80% probability or 3 folders |
 | `SHORTLIST` | 6 | files bge-small keeps for Laya's file choice |
 | `HEAD_TOKENS` | 384 | Laya's token budget for instructions + options (its default 192 truncates options) |
 | `DESCRIPTION_CHARS` | 120 | how much of each file's best excerpt Laya sees when choosing files |
@@ -86,14 +81,14 @@ deletes stale vectors. Returns `{path: entry}`.
 **`excerpt_scores(question, files)`**: every excerpt's score = similarity to the question (the question is embedded
 alone) + `WORD_WEIGHT` × share of the question's words it contains.
 
+**`excerpt_words(path, entry)`**: each excerpt's word set, computed once per file and kept in memory until the
+file changes, so `excerpt_scores` doesn't rerun the word regex on every question.
+
 **`choose(query, state, instructions, criteria, k)`**: one Laya choice through `laya.predict_shortlist`: bge-small
 keeps the `k` options closest to the question, then Laya returns a probability for each. Options are shuffled per
 question so Laya's position bias doesn't always favour the same ones.
 
-**`pick_folders(...)`**: folders described by their file names, `choose` with `FOLDER_K`; keeps the top folders by
-`FOLDER_MASS` / `MAX_FOLDERS`, plus the folder of the closest file.
-
-**`rank_files(...)`**: files in those folders, each described as `in <folder>: <start of its best excerpt>`, `choose`
+**`rank_files(...)`**: every indexed file, each described as `in <folder>: <start of its best excerpt>`, `choose`
 with `SHORTLIST`. Returns paths best first.
 
 **`retrieve(question, log=False, trace=None)`**: the whole search. Stops early if Metis is off or no folders are
