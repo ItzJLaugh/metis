@@ -41,6 +41,8 @@ EMBEDDERS = [
     "ibm-granite/granite-embedding-small-english-r2",  # 48M parameters, the previous default
     "sentence-transformers/all-MiniLM-L6-v2",  # fallback if the installed transformers can't load either
 ]
+SEARCH = "funnel"  # "funnel": folders -> files -> excerpts; "flat": score every excerpt, Laya checks the FLAT_K best. Benchmarked: funnel 27/27/24, flat 26/26/23 (noise), funnel faster
+FLAT_K = 16  # excerpts from any file that Laya checks in the flat search (the funnel checked 12-16)
 FOLDER_STEP = True  # narrow to folders first, then files inside them
 FOLDER_K = 6  # folders bge-small hands Laya
 FOLDER_MASS = 0.8  # keep Laya's top folders until their probabilities add up to this...
@@ -525,20 +527,28 @@ def _retrieve(question, trace):
         return {"found": False, "message": "No folders are shared with Metis yet."}
 
     scores = excerpt_scores(question, files)
-    # 1. Folders: bge-small keeps the closest, Laya picks the likely ones.
-    candidates_files = pick_folders(question, files, scores, trace) if FOLDER_STEP else list(scores)
+    if SEARCH == "flat":
+        # One pass over every excerpt in every file: the FLAT_K closest go straight to Laya. No folder or file step,
+        # so an early wrong pick can't drop the right excerpt.
+        best = sorted(((float(value), path, int(row)) for path in scores for row, value in enumerate(scores[path])),
+                      reverse=True)[:FLAT_K]
+        candidates = [(path, files[path]["excerpts"][row]) for _, path, row in best]
+        trace["flat"] = [(path, files[path]["excerpts"][row]["at"], round(value, 4)) for value, path, row in best]
+    else:
+        # 1. Folders: bge-small keeps the closest, Laya picks the likely ones.
+        candidates_files = pick_folders(question, files, scores, trace) if FOLDER_STEP else list(scores)
 
-    # 2. Files inside them: bge-small keeps SHORTLIST, Laya ranks them; the closest file by meaning is checked too.
-    closest = max(candidates_files, key=lambda path: scores[path].max())
-    chosen = rank_files(question, candidates_files, files, scores, trace)[:FILES_TO_CHECK]
-    if closest not in chosen:
-        chosen.append(closest)
+        # 2. Files inside them: bge-small keeps SHORTLIST, Laya ranks them; the closest file by meaning is checked too.
+        closest = max(candidates_files, key=lambda path: scores[path].max())
+        chosen = rank_files(question, candidates_files, files, scores, trace)[:FILES_TO_CHECK]
+        if closest not in chosen:
+            chosen.append(closest)
 
-    # 3. From each chosen file, take its excerpts closest to the question.
-    candidates = []  # (path, excerpt)
-    for path in chosen:
-        for row in np.argsort(-scores[path])[:EXCERPTS_PER_FILE]:
-            candidates.append((path, files[path]["excerpts"][int(row)]))
+        # 3. From each chosen file, take its excerpts closest to the question.
+        candidates = []  # (path, excerpt)
+        for path in chosen:
+            for row in np.argsort(-scores[path])[:EXCERPTS_PER_FILE]:
+                candidates.append((path, files[path]["excerpts"][int(row)]))
     if not candidates:
         return {"found": False, "message": "Metis could not read the files that matched."}
 

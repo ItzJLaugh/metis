@@ -41,6 +41,8 @@ An `index.json` entry:
 | `LAYA_MODEL` | `convaiinnovations/laya` | the English Laya checkpoint |
 | `EMBEDDERS` | bge-small, then Granite, then MiniLM | embedding models tried in order |
 | `CHUNK_CHARS` | 400 | longest excerpt; question + excerpt fit Laya's 512-token window |
+| `SEARCH` | `"funnel"` | `"funnel"`: folders → files → excerpts; `"flat"`: score every excerpt and let Laya check the best `FLAT_K` |
+| `FLAT_K` | 16 | excerpts Laya checks in the flat search |
 | `FOLDER_STEP` | True | narrow to folders before files |
 | `FOLDER_K` | 6 | folders bge-small keeps for Laya's folder choice |
 | `FOLDER_MASS` / `MAX_FOLDERS` | 0.8 / 3 | keep Laya's top folders until 80% probability or 3 folders |
