@@ -89,6 +89,10 @@ Metis later. To remove Metis: click **Disconnect** in the app, then delete the M
 JSON and text) in 14 folders. `bench/questions_sample.jsonl` has 36 questions about it: 31 answered somewhere in
 the files and 5 that aren't, where Metis should say nothing was found.
 
+On it, Metis finds the right folder 29/31, the right file 28/31 and the exact right part 26/31 times, and says
+"not found" for 3 of the 5 questions with no answer. A question takes about 0.3 s on a laptop GPU or about 7 s on
+the CPU.
+
 To run it:
 
 1. In the Metis app, share only `bench\sample\TechSolutions` (remove your other folders while testing).

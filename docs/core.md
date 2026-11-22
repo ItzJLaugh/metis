@@ -54,7 +54,7 @@ An `index.json` entry:
 | `WORD_WEIGHT` | 0.1 | how much shared words add to meaning, so codes like `q1` still count |
 | `NOT_FOUND_BELOW` | 0.15 | best yes-probability under this → "not found" |
 | `CLOSE_ENOUGH` / `MAX_RESULTS` | 0.20 / 5 | excerpts within 0.20 of the best are sent too, up to 5 |
-| `VERSION` | `"400-4"` | change it whenever indexing changes; the index rebuilds |
+| `VERSION` | `"400-5"` | change it whenever indexing changes; the index rebuilds |
 
 ## Functions
 
@@ -74,6 +74,7 @@ dot product is the similarity.
 | PDF | page | `page 2` |
 | Word | heading section | `Budget section` (`start` before the first heading) |
 | Excel | row, written `Column: value; ...` (column names = first row with 2+ filled cells) | `"Monthly" sheet, March row` |
+| CSV | row, written `Column: value; ...` (column names = first row) | `TS-014 row` (the row's first cell) |
 | other | whole file | `text` |
 
 **`index_file(path)`**: cuts those pairs into excerpts of at most 400 characters (`page 3, part 2` when split).

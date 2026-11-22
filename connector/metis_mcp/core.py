@@ -1,6 +1,7 @@
 """Metis core: indexes the user's folders, then a sentence transformer shortlists files and Laya picks the file and
 the passage that answer a question."""
 
+import csv
 import gc
 import hashlib
 import json
@@ -51,7 +52,7 @@ HEAD_TOKENS = 384  # Laya's token budget for instructions + options (default 192
 NOT_FOUND_BELOW = 0.15  # tuned per model on the author's benchmark: 0.15 for the English one, 0.35 for typed-decisions
 CLOSE_ENOUGH = 0.20  # excerpts scoring within this of the best are sent too; every wrong answer had a runner-up this close
 MAX_RESULTS = 5  # most excerpts sent to Claude for one question
-VERSION = f"{CHUNK_CHARS}-4"  # change this whenever indexing changes; every index rebuilds
+VERSION = f"{CHUNK_CHARS}-5"  # change this whenever indexing changes; every index rebuilds
 STOPWORDS = [
     "the", "and", "for", "are", "was", "were", "with", "that", "this",
     "from", "have", "has", "had", "not", "but", "you", "your", "our",
@@ -259,6 +260,17 @@ def read_pieces(path):
                         name = header[column] if column < len(header) else ""
                         cells.append(f"{name}: {value}" if name else value)
                 pieces.append([f'"{sheet.title}" sheet, {filled[0][:40]} row', "; ".join(cells)])
+        return pieces
+    
+    if kind == ".csv":                                                   # each row keeps its column names, like Excel rows
+        rows = [row for row in csv.reader(path.read_text(encoding="utf-8-sig", errors="ignore").splitlines()) if any(row)]
+        if len(rows) < 2:
+            return [["text", path.read_text(encoding="utf-8", errors="ignore")]]
+        header, pieces = rows[0], []
+        for row in rows[1:]:
+            cells = [f"{header[column]}: {value}" if column < len(header) and header[column] else value
+                     for column, value in enumerate(row) if value]
+            pieces.append([f"{row[0][:40]} row", "; ".join(cells)])
         return pieces
     
     return [["text", path.read_text(encoding="utf-8", errors="ignore")]]
