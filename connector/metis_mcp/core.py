@@ -42,18 +42,12 @@ EMBEDDERS = [
     "ibm-granite/granite-embedding-small-english-r2",  # 48M parameters, the previous default
     "sentence-transformers/all-MiniLM-L6-v2",  # fallback if the installed transformers can't load either
 ]
-SEARCH = "funnel"  # "funnel": folders -> files -> excerpts; "flat": score every excerpt, Laya checks the FLAT_K best. Benchmarked: funnel 27/27/24, flat 26/26/23 (noise), funnel faster
-FLAT_K = 16  # excerpts from any file that Laya checks in the flat search (the funnel checked 12-16)
-FOLDER_STEP = True  # narrow to folders first, then files inside them
-FOLDER_K = 6  # folders bge-small hands Laya
-FOLDER_MASS = 0.8  # keep Laya's top folders until their probabilities add up to this...
-MAX_FOLDERS = 3  # ...or this many folders
 HEAD_TOKENS = 384  # Laya's token budget for instructions + options (default 192 cut each of 12 options to ~14 tokens); the state is just the question
 NOT_FOUND_BELOW = 0.15  # tuned per model on the author's benchmark: 0.15 for the English one, 0.35 for typed-decisions
 CLOSE_ENOUGH = 0.20  # excerpts scoring within this of the best are sent too; every wrong answer had a runner-up this close
 MAX_RESULTS = 5  # most excerpts sent to Claude for one question
 VERSION = f"{CHUNK_CHARS}-5"  # change this whenever indexing changes; every index rebuilds
-STOPWORDS = [
+STOPWORDS = {
     "the", "and", "for", "are", "was", "were", "with", "that", "this",
     "from", "have", "has", "had", "not", "but", "you", "your", "our",
     "their", "they", "its", "what", "which", "who", "when", "where",
@@ -61,7 +55,7 @@ STOPWORDS = [
     "into", "than", "then", "there", "these", "those", "all", "any",
     "each", "also", "just", "more", "most", "some", "such", "only",
     "own", "same", "very", "does", "did", "doing", "been", "being",
-]
+}
 
 
 def load(path, default):
@@ -384,7 +378,17 @@ def words(text):
     return {word for word in re.findall(r"[a-z0-9]+", text.lower())
             if word not in STOPWORDS and (len(word) > 2 or not word.isalpha())}
 
+_word_sets = {} # path -> (mtime, list of word sets, one per excerpt)
 
+def excerpt_words(path, entry):
+    cached = _word_sets.get(path)      # (mtime, sets) or None
+    if (cached and cached[0] == entry["mtime"]):
+        return cached[1]
+    sets = [words(excerpt["text"]) for excerpt in entry["excerpts"]]
+    _word_sets[path] = (entry["mtime"], sets)
+    return sets
+    
+    
 def excerpt_scores(question, files):
     """How well every excerpt of every file matches the question: closeness in meaning (from the sentence
     transformer) plus a little for each word it shares with the question. Returns {path: array, one per excerpt}."""
@@ -394,7 +398,7 @@ def excerpt_scores(question, files):
     for path, entry in files.items():
         if entry["excerpts"]:
             meaning = vectors(path, entry) @ question_vector
-            shared = np.array([len(asked & words(excerpt["text"])) for excerpt in entry["excerpts"]], dtype=np.float32)
+            shared = np.array([len(asked & word_set) for word_set in excerpt_words(path, entry)], dtype=np.float32)
             scores[path] = meaning + WORD_WEIGHT * shared / max(len(asked), 1)
     return scores
 
@@ -428,42 +432,6 @@ def choose(query, state, instructions, criteria, k):
     )
     chances = answer["answers"]["pick"]["probabilities"]
     return dict(sorted(chances.items(), key=lambda item: item[1], reverse=True))
-
-
-def folder_name(folder):
-    """A folder's path inside the shared folder it belongs to ("Marketing/Investors"); a shared folder is its own name."""
-    for base in settings()["folders"]:
-        try:
-            relative = Path(folder).relative_to(base).as_posix()
-            return Path(base).name if relative == "." else relative
-        except ValueError:
-            continue
-    return Path(folder).name
-
-
-def pick_folders(question, files, scores, trace):
-    """Laya's most likely folders: bge-small keeps FOLDER_K, Laya picks; kept until FOLDER_MASS or MAX_FOLDERS.
-    The folder of the closest file by meaning is always kept too."""
-    by_folder = {}
-    for path in files:
-        if path in scores:
-            by_folder.setdefault(str(Path(path).parent), []).append(path)
-    names = {folder_name(folder): folder for folder in by_folder}
-    criteria = {name: ", ".join(sorted(Path(p).stem.replace("_", " ") for p in by_folder[folder]))[:300]
-                for name, folder in names.items()}
-    chances = choose(question, {"question": question}, "Which folder most likely holds the answer to `question`?",
-                     criteria, FOLDER_K)
-    trace["folders"] = chances
-    kept, mass = [], 0.0
-    for name, chance in chances.items():
-        if mass >= FOLDER_MASS or len(kept) >= MAX_FOLDERS:
-            break
-        kept.append(names[name])
-        mass += chance
-    closest = str(Path(max(scores, key=lambda path: scores[path].max())).parent)
-    if closest not in kept:
-        kept.append(closest)
-    return [path for folder in kept for path in by_folder[folder]]
 
 
 def rank_files(question, paths, files, scores, trace):
@@ -539,32 +507,22 @@ def _retrieve(question, trace):
         return {"found": False, "message": "No folders are shared with Metis yet."}
 
     scores = excerpt_scores(question, files)
-    if SEARCH == "flat":
-        # One pass over every excerpt in every file: the FLAT_K closest go straight to Laya. No folder or file step,
-        # so an early wrong pick can't drop the right excerpt.
-        best = sorted(((float(value), path, int(row)) for path in scores for row, value in enumerate(scores[path])),
-                      reverse=True)[:FLAT_K]
-        candidates = [(path, files[path]["excerpts"][row]) for _, path, row in best]
-        trace["flat"] = [(path, files[path]["excerpts"][row]["at"], round(value, 4)) for value, path, row in best]
-    else:
-        # 1. Folders: bge-small keeps the closest, Laya picks the likely ones.
-        candidates_files = pick_folders(question, files, scores, trace) if FOLDER_STEP else list(scores)
 
-        # 2. Files inside them: bge-small keeps SHORTLIST, Laya ranks them; the closest file by meaning is checked too.
-        closest = max(candidates_files, key=lambda path: scores[path].max())
-        chosen = rank_files(question, candidates_files, files, scores, trace)[:FILES_TO_CHECK]
-        if closest not in chosen:
-            chosen.append(closest)
+    # 1. Files inside them: bge-small keeps SHORTLIST, Laya ranks them; the closest file by meaning is checked too.
+    closest = max(scores, key=lambda path: scores[path].max())
+    chosen = rank_files(question, scores, files, scores, trace)[:FILES_TO_CHECK]
+    if closest not in chosen:
+        chosen.append(closest)
 
-        # 3. From each chosen file, take its excerpts closest to the question.
-        candidates = []  # (path, excerpt)
-        for path in chosen:
-            for row in np.argsort(-scores[path])[:EXCERPTS_PER_FILE]:
-                candidates.append((path, files[path]["excerpts"][int(row)]))
+    # 2. From each chosen file, take its excerpts closest to the question.
+    candidates = []  # (path, excerpt)
+    for path in chosen:
+        for row in np.argsort(-scores[path])[:EXCERPTS_PER_FILE]:
+            candidates.append((path, files[path]["excerpts"][int(row)]))
     if not candidates:
         return {"found": False, "message": "Metis could not read the files that matched."}
 
-    # 4. Laya scores every candidate at once: does it answer the question?
+    # 3. Laya scores every candidate at once: does it answer the question?
     results = agent().predict_batch(
         [{"question": question, 
           "excerpt": f'{excerpt["at"]}: {excerpt["text"]}'} for _, excerpt in candidates],
@@ -580,7 +538,7 @@ def _retrieve(question, trace):
     if best < NOT_FOUND_BELOW:
         return {"found": False, "message": "Nothing in the shared folders answers this."}
 
-    # 5. Excerpts that score nearly as high as the best may answer the question just as well, so Claude gets
+    # 4. Excerpts that score nearly as high as the best may answer the question just as well, so Claude gets
     #    all of them (at most MAX_RESULTS) and picks. A clear winner is sent alone.
     answer = {"found": True, "results": []}
     for number in ranked[:MAX_RESULTS]:
