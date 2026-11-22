@@ -1,0 +1,36 @@
+{"id": 1, "question": "How long was the route optimizer down in September?", "folder": "Engineering/Incident_Reports", "file": "Postmortem_2026-09-17_Route_Optimizer_Outage.md", "part": "48 minutes"}
+{"id": 2, "question": "What caused pods to keep getting killed during the outage?", "folder": "Engineering/Incident_Reports", "file": "Postmortem_2026-09-17_Route_Optimizer_Outage.md", "part": "pod memory limit stayed at 6 GB"}
+{"id": 3, "question": "What memory limit is set for the route optimizer in production?", "folder": "Engineering/Config", "file": "route_optimizer_prod.json", "part": "10Gi"}
+{"id": 4, "question": "Is EV charging stop routing turned on yet?", "folder": "Engineering/Config", "file": "route_optimizer_prod.json", "part": "\"ev_charging_stops\": false"}
+{"id": 5, "question": "When will bulk import support Excel files?", "folder": "Engineering", "file": "Release_Notes_v3.2.txt", "part": "planned for v3.3"}
+{"id": 6, "question": "Which database do we use as our main database and where is it hosted?", "folder": "Engineering", "file": "Architecture_Overview.md", "part": "PostgreSQL 16 on AWS RDS"}
+{"id": 7, "question": "How long do we keep GPS time-series data?", "folder": "Engineering", "file": "Architecture_Overview.md", "part": "retained for 13 months"}
+{"id": 8, "question": "How many people did the board approve hiring next year?", "folder": "Executive", "file": "Board_Meeting_Minutes_2026-10-21.docx", "part": "22 new hires for 2027"}
+{"id": 9, "question": "When is the next board meeting?", "folder": "Executive", "file": "Board_Meeting_Minutes_2026-10-21.docx", "part": "January 27, 2027"}
+{"id": 10, "question": "Which types of fleets are we choosing not to go after in 2027?", "folder": "Executive", "file": "Strategy_2027.pdf", "part": "fleets under 25 vehicles"}
+{"id": 11, "question": "How much do we pay per month for Claude?", "folder": "Finance", "file": "Budget_FY2026.xlsx", "part": "Claude Team; Vendor: Anthropic"}
+{"id": 12, "question": "How much of its yearly budget has marketing used so far?", "folder": "Finance", "file": "Budget_FY2026.xlsx", "part": "% Used: 84%"}
+{"id": 13, "question": "How many months of runway do we have?", "folder": "Finance", "file": "Financial_Summary_Q3_2026.md", "part": "roughly 38 months"}
+{"id": 14, "question": "Why was Kevin's team lunch expense rejected?", "folder": "Finance/Expense_Reports", "file": "Q3_2026_Expenses.csv", "part": "over per-person limit"}
+{"id": 15, "question": "What is the total due on the Northwind invoice?", "folder": "Finance/Invoices", "file": "INV-2026-0418_Northwind_Logistics.pdf", "part": "Total Due"}
+{"id": 16, "question": "Who is Grace Liu's manager?", "folder": "HR", "file": "Employee_Directory.csv", "part": "Grace Liu,Data Engineer,Engineering,Priya Nair"}
+{"id": 17, "question": "How many unused vacation days carry over to next year?", "folder": "HR", "file": "Employee_Handbook_2026.docx", "part": "Up to 5 unused PTO days roll over"}
+{"id": 18, "question": "What's the daily meal limit when traveling for work?", "folder": "HR", "file": "Employee_Handbook_2026.docx", "part": "up to $75 per day"}
+{"id": 19, "question": "How soon does a new hire have to finish security training?", "folder": "HR", "file": "Onboarding_Checklist.md", "part": "within 5 business days"}
+{"id": 20, "question": "How quickly do I have to report a lost laptop?", "folder": "HR/Policies", "file": "Remote_Work_Policy.pdf", "part": "within 2 hours"}
+{"id": 21, "question": "Which customer contract is at risk of not renewing?", "folder": "Legal", "file": "Contract_Renewals_Tracker.txt", "part": "AT RISK"}
+{"id": 22, "question": "Which state's law applies to our NDA?", "folder": "Legal", "file": "Mutual_NDA_Template.docx", "part": "Texas law governs this agreement"}
+{"id": 23, "question": "What hex code is our accent color?", "folder": "Marketing", "file": "Brand_Guidelines.md", "part": "#FCA311"}
+{"id": 24, "question": "How much is the LinkedIn ad spend for the Q4 campaign?", "folder": "Marketing", "file": "Q4_2026_Campaign_Plan.docx", "part": "LinkedIn ads: $48,000"}
+{"id": 25, "question": "How many leads did LinkedIn bring in during October?", "folder": "Marketing", "file": "Social_Media_Metrics_2026.csv", "part": "2026-10,LinkedIn,10120,311000,4.2%,4870,132"}
+{"id": 26, "question": "How fast must we report a suspected security incident?", "folder": "Operations", "file": "Information_Security_Policy.pdf", "part": "within 1 hour of discovery"}
+{"id": 27, "question": "Which laptop was retired and why?", "folder": "Operations", "file": "IT_Asset_Inventory.csv", "part": "Retired - battery failure"}
+{"id": 28, "question": "How much do we spend per year on AWS?", "folder": "Operations", "file": "Vendor_List.xlsx", "part": "Annual Spend (USD): 612000"}
+{"id": 29, "question": "How big a discount can an account executive give without approval?", "folder": "Sales", "file": "FleetSync_Pricing_2026.pdf", "part": "discount up to 10%"}
+{"id": 30, "question": "What service credit does Northwind get if uptime drops below 99%?", "folder": "Sales/Client_Contracts", "file": "Northwind_Logistics_MSA.docx", "part": "25% credit"}
+{"id": 31, "question": "What is the next step on the Atlas Cold Chain deal?", "folder": "Sales", "file": "Pipeline_Q4_2026.xlsx", "part": "Next Step: Security questionnaire"}
+{"id": 32, "question": "What is the company's dog policy for the Austin office?", "folder": null, "file": null, "part": null}
+{"id": 33, "question": "Who is our 401(k) plan administrator?", "folder": null, "file": null, "part": null}
+{"id": 34, "question": "What was revenue in Q1 2025?", "folder": null, "file": null, "part": null}
+{"id": 35, "question": "What is the Wi-Fi password for the Austin office?", "folder": null, "file": null, "part": null}
+{"id": 36, "question": "Which customers are based in Europe?", "folder": null, "file": null, "part": null}

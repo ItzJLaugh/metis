@@ -1,0 +1,8 @@
+CONTRACT RENEWALS TRACKER — updated November 2, 2026 (owner: Victor Huang)
+
+Customer               | Renewal date | Annual value | Auto-renew | Notice deadline | Status
+Northwind Logistics    | 2029-09-30   | $96,600      | Yes        | 2029-07-02      | Active (new 36-month MSA)
+Granite Freight        | 2027-10-13   | $96,000      | Yes        | 2027-07-15      | Active
+Bluepeak Health        | pending      | $138,000     | -          | -               | MSA in negotiation
+Lone Star Movers       | 2026-12-31   | $36,000      | No         | 2026-11-30      | AT RISK - customer asked about Starter downgrade
+Harborline Shipping    | 2027-02-28   | $84,000      | Yes        | 2026-11-30      | Active - expansion talks

@@ -1,0 +1,9 @@
+Asset Tag,Type,Model,Assigned To,Purchase Date,Warranty End,Status
+TS-LT-0101,Laptop,MacBook Pro 14 M3,Priya Nair,2024-02-12,2027-02-12,In use
+TS-LT-0102,Laptop,MacBook Pro 14 M3,Sam Patel,2024-02-12,2027-02-12,In use
+TS-LT-0117,Laptop,MacBook Air 13 M3,Kevin Brooks,2024-05-20,2027-05-20,In use
+TS-LT-0124,Laptop,MacBook Pro 14 M4,Grace Liu,2024-06-01,2027-06-01,In use
+TS-LT-0131,Laptop,MacBook Air 13 M2,Unassigned,2023-01-15,2026-01-15,Retired - battery failure
+TS-MN-0210,Monitor,Dell U2723QE,Leah Kim,2023-08-09,2026-08-09,In use
+TS-PH-0305,Phone,iPhone 15,Dana Ortiz,2024-09-30,2026-09-30,In use
+TS-NW-0401,Network,Ubiquiti Dream Machine Pro,Austin office,2023-03-02,2026-03-02,In use

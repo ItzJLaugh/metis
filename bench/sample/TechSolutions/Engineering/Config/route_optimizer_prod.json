@@ -1,0 +1,29 @@
+{
+  "service": "route-optimizer",
+  "environment": "production",
+  "region": "us-east-2",
+  "replicas": {
+    "min": 4,
+    "max": 12
+  },
+  "resources": {
+    "memory_limit": "10Gi",
+    "cpu_limit": "4"
+  },
+  "cache": {
+    "size_gb": 8,
+    "ttl_minutes": 15
+  },
+  "feature_flags": {
+    "live_traffic": true,
+    "hours_of_service": true,
+    "ev_charging_stops": false
+  },
+  "alerts": {
+    "pod_restarts_threshold": 3,
+    "window_minutes": 5,
+    "pagerduty_service": "fleetsync-core"
+  },
+  "last_updated_by": "Nina Okafor",
+  "last_updated": "2026-10-15"
+}

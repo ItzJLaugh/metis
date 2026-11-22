@@ -1,0 +1,18 @@
+FleetSync v3.2 — Release Notes
+Released: October 28, 2026
+
+NEW
+- Route Optimization AI now considers live traffic and driver hours-of-service limits.
+- Bulk load import from CSV (up to 5,000 loads per file).
+- Dark mode for the customer dashboard.
+
+IMPROVED
+- Dispatch board loads 2.3x faster for fleets over 200 vehicles.
+- GPS map refresh interval reduced from 30 seconds to 10 seconds.
+
+FIXED
+- Duplicate notifications when a load was reassigned twice within one minute.
+- Time zone bug in weekly utilization reports for Arizona customers.
+
+KNOWN ISSUES
+- Bulk import does not yet support Excel (.xlsx) files; planned for v3.3 (December 2026).

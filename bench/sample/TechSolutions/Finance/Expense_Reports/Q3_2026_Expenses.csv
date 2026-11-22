@@ -1,0 +1,10 @@
+Date,Employee,Department,Category,Description,Amount (USD),Status
+2026-07-08,Dana Ortiz,Sales,Travel,Flight to Chicago - Northwind Logistics onsite,612.40,Approved
+2026-07-09,Dana Ortiz,Sales,Meals,Client dinner - Northwind Logistics,284.15,Approved
+2026-07-22,Sam Patel,Engineering,Conference,KubeCon registration,1199.00,Approved
+2026-08-03,Jordan Ellis,Marketing,Events,Booth deposit - SaaS Connect Expo,4500.00,Approved
+2026-08-14,Leah Kim,Product & Design,Equipment,Wacom tablet for design team,379.99,Approved
+2026-08-19,Kevin Brooks,Sales,Travel,"Hotel - Austin, 3 nights",741.60,Pending
+2026-09-02,Alicia Moreno,Customer Success,Training,Customer success certification course,895.00,Approved
+2026-09-11,Marcus Webb,Operations & IT,Equipment,Replacement laptops (x3),4197.00,Approved
+2026-09-25,Kevin Brooks,Sales,Meals,Team lunch - Q3 kickoff,322.80,Rejected - over per-person limit

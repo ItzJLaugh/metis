@@ -1,0 +1,15 @@
+Employee ID,Name,Title,Department,Manager,Location,Start Date,Email
+TS-001,Elena Vasquez,Chief Executive Officer,Executive,Board,"Austin, TX",2019-04-01,elena.vasquez@techsolutions.example
+TS-002,Victor Huang,Chief Financial Officer,Finance & Legal,Elena Vasquez,"Austin, TX",2020-02-17,victor.huang@techsolutions.example
+TS-003,Priya Nair,VP of Engineering,Engineering,Elena Vasquez,"Remote - Denver, CO",2019-06-10,priya.nair@techsolutions.example
+TS-004,Dana Ortiz,VP of Sales,Sales,Elena Vasquez,"Austin, TX",2021-01-04,dana.ortiz@techsolutions.example
+TS-005,Jordan Ellis,Director of Marketing,Marketing,Elena Vasquez,"Remote - Atlanta, GA",2022-03-14,jordan.ellis@techsolutions.example
+TS-006,Rachel Thompson,VP of People,People (HR),Elena Vasquez,"Austin, TX",2020-08-03,rachel.thompson@techsolutions.example
+TS-007,Marcus Webb,Director of IT & Operations,Operations & IT,Victor Huang,"Austin, TX",2021-05-24,marcus.webb@techsolutions.example
+TS-008,Leah Kim,Head of Product & Design,Product & Design,Elena Vasquez,"Austin, TX",2021-09-13,leah.kim@techsolutions.example
+TS-009,Alicia Moreno,Director of Customer Success,Customer Success,Dana Ortiz,"Remote - Phoenix, AZ",2022-01-10,alicia.moreno@techsolutions.example
+TS-010,Sam Patel,Senior Site Reliability Engineer,Engineering,Priya Nair,"Austin, TX",2022-07-18,sam.patel@techsolutions.example
+TS-011,Kevin Brooks,Account Executive,Sales,Dana Ortiz,"Austin, TX",2023-02-06,kevin.brooks@techsolutions.example
+TS-012,Nina Okafor,Senior Backend Engineer,Engineering,Priya Nair,"Remote - Raleigh, NC",2023-04-24,nina.okafor@techsolutions.example
+TS-013,Tom Lindqvist,Product Designer,Product & Design,Leah Kim,"Austin, TX",2024-01-08,tom.lindqvist@techsolutions.example
+TS-014,Grace Liu,Data Engineer,Engineering,Priya Nair,"Austin, TX",2024-06-03,grace.liu@techsolutions.example

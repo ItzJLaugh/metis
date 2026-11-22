@@ -85,14 +85,23 @@ Metis later. To remove Metis: click **Disconnect** in the app, then delete the M
 
 ## How well it works
 
-On a 30-question test about real business files (25 answerable, 5 with no answer in the files), Metis returns the
-right folder 23/25, the right file 19/25 and the exact right part 16/25 times, in about 1 s per question on a
-laptop GPU or about 10 s on CPU. To measure it on your own folders, copy `bench/questions.example.jsonl` to
-`bench/questions.jsonl`, write your own questions, and run:
+`bench/sample/TechSolutions` is a made-up company for testing Metis: 25 files (Word, PDF, Excel, CSV, Markdown,
+JSON and text) in 14 folders. `bench/questions_sample.jsonl` has 36 questions about it: 31 answered somewhere in
+the files and 5 that aren't, where Metis should say nothing was found.
+
+To run it:
+
+1. In the Metis app, share only `bench\sample\TechSolutions` (remove your other folders while testing).
+2. Fully quit Claude Desktop, so its copy of Metis isn't holding the GPU.
+3. Run:
 
 ```
-.venv\Scripts\python bench/run.py --step "my test"
+.venv\Scripts\python bench/run.py --questions bench/questions_sample.jsonl --step "sample"
 ```
+
+The last line shows how often Metis found the right folder, file and part, how often it said "not found", and the
+time per question. To measure Metis on your own folders, copy `bench/questions.example.jsonl` to
+`bench/questions.jsonl`, write questions about your files, and run the same command without `--questions`.
 
 ## Manual install
 
@@ -114,7 +123,7 @@ Set `LAYA_DEVICE=cpu` to force the CPU.
 - `connector/metis_mcp/server.py`: the `request` tool Claude calls
 - `connector/metis_mcp/app.py` + `app.html`: the desktop app
 - `connector/compare.py`: time and token cost of Claude with vs without Metis (needs an Anthropic API key)
-- `bench/`: the benchmark scorer and an example question file
+- `bench/`: the benchmark scorer, the sample company (`bench/sample/`) with its questions, and an example question file
 - `docs/build-plan.md`: what's next
 
 ## License
