@@ -75,5 +75,6 @@ class Api:
 
 
 if __name__ == "__main__":
+    core.start_idle_unloader()  # the app embeds new files and runs Test; it must not hold the models forever
     webview.create_window("Metis", str(Path(__file__).with_name("app.html")), js_api=Api(), width=1100, height=720)
     webview.start()

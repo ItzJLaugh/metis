@@ -1,12 +1,14 @@
 """Metis core: indexes the user's folders, then a sentence transformer shortlists files and Laya picks the file and
 the passage that answer a question."""
 
+import gc
 import hashlib
 import json
 import os
 import random
 import re
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -22,6 +24,10 @@ LOG = HOME / "shared.json"  # what Metis sent to the AI app
 VECTORS = HOME / "vectors"  # each file's excerpt meanings, one .npy per file
 DECISIONS = HOME / "decisions.jsonl"  # every lookup's candidates, Laya's probabilities and the choice (see log_decision)
 
+IDLE_UNLOAD_SECONDS = 600  # models are dropped from GPU/RAM after this long without a search; the next search reloads them (~12 s)
+MIN_FREE_VRAM = 2 * 1024**3  # below this much free GPU memory Metis runs on the CPU instead of fighting for the GPU
+MAX_FILE_BYTES = 50 * 1024 * 1024  # larger files are not indexed
+SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", "site-packages", ".cache"}  # never indexed
 FILE_TYPES = {".txt", ".md", ".csv", ".json", ".pdf", ".docx", ".xlsx"}
 LAYA_MODEL = "convaiinnovations/laya"  # the general English Laya; "laya-typed-decisions" tied on accuracy but sent ~50% more excerpts
 CHUNK_CHARS = 400  # longest excerpt; keeps question + excerpt inside Laya's 512-token window
@@ -65,7 +71,7 @@ def load(path, default):
 def save(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")  # write then swap, so the app and the server never read half a file
+    temporary = path.with_suffix(".tmp") 
     temporary.write_text(json.dumps(data, indent=2), encoding="utf-8")
     temporary.replace(path)
 
@@ -75,24 +81,110 @@ def settings():
 
 
 _laya, _laya_lock = None, threading.Lock()
+_infer_lock = threading.RLock() 
+_last_used = time.time()
+_device, _device_lock, _gpu_lock_handle = None, threading.Lock(), None
+
+
+def _take_gpu_slot():
+    """Only one Metis process per machine may hold the GPU (a second one would load its own copy of the models and
+    double the GPU memory). The OS drops this lock automatically if the process dies, so it can't go stale."""
+    global _gpu_lock_handle
+    HOME.mkdir(parents=True, exist_ok=True)
+    handle = open(HOME / "gpu.lock", "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return False
+    _gpu_lock_handle = handle
+    return True
+
+
+def _release_gpu_slot():
+    global _gpu_lock_handle, _device
+    if _gpu_lock_handle is not None:
+        _gpu_lock_handle.close() 
+        _gpu_lock_handle = None
+    _device = None
+
+
+def device():
+    """"cuda" only if there is an NVIDIA GPU, no other Metis process holds it and it has MIN_FREE_VRAM free;
+    otherwise "cpu". LAYA_DEVICE overrides. Decided once, then kept until the models are unloaded."""
+    global _device
+    with _device_lock:
+        if _device is None:
+            forced = os.environ.get("LAYA_DEVICE")
+            if forced:
+                _device = forced
+            else:
+                import torch
+                _device = "cpu"
+                if torch.cuda.is_available() and _take_gpu_slot():  # take the slot before touching CUDA
+                    if torch.cuda.mem_get_info()[0] >= MIN_FREE_VRAM:
+                        _device = "cuda"
+                    else:
+                        _release_gpu_slot()
+                        _device = "cpu"
+        return _device
+
+
+def trim_gpu():
+    """Hand memory PyTorch is only caching back to the GPU."""
+    import torch
+    if torch.cuda.is_available() and _device == "cuda":
+        torch.cuda.empty_cache()
 
 
 def agent():
     """Laya, loaded once (~12 s). The lock makes a search wait for a load that is already running."""
-    global _laya
-    
+    global _laya, _last_used
+
     with _laya_lock:
         if _laya is None:
             import laya  # Laya logs to stderr, so it can't break the MCP connection on stdout
-            import torch
 
-            # NVIDIA GPU is faster; LAYA_DEVICE=cpu forces the CPU.
-            device = os.environ.get("LAYA_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
-            _laya = laya.load(LAYA_MODEL, device=device)
-            if device == "cuda":
-                # Half-size weights (~0.8 GB) fit small GPUs;
+            dev = device()
+            _laya = laya.load(LAYA_MODEL, device=dev)
+            if dev == "cuda":
+                # Half-size weights (~0.8 GB) fit small GPUs; empty_cache returns the freed full-size weights
                 _laya.model.half()
+                trim_gpu()
+        _last_used = time.time()
     return _laya
+
+
+def _unload_idle():
+    """Drop both models (and the GPU slot) after IDLE_UNLOAD_SECONDS without a search."""
+    global _laya, _embedder, _embedder_name
+    if time.time() - _last_used < IDLE_UNLOAD_SECONDS or not _infer_lock.acquire(blocking=False):
+        return
+    try:
+        with _laya_lock, _embedder_lock:
+            if _laya is None and _embedder is None:
+                return
+            _laya, _embedder, _embedder_name = None, None, None
+            gc.collect()
+            trim_gpu()
+            _release_gpu_slot()
+    finally:
+        _infer_lock.release()
+
+
+def start_idle_unloader():
+    """Call once from each long-lived process (the server and the app)."""
+    def loop():
+        while True:
+            time.sleep(60)
+            _unload_idle()
+    threading.Thread(target=loop, daemon=True).start()
 
 
 _embedder, _embedder_name, _embedder_lock = None, None, threading.Lock()
@@ -104,14 +196,13 @@ def embedder():
 
     with _embedder_lock:
         if _embedder is None:
-            import torch
             from sentence_transformers import SentenceTransformer  # logs to stderr too
 
-            device = os.environ.get("LAYA_DEVICE") or ("cuda" if torch.cuda.is_available() else "cpu")
+            dev = device()
             errors = []
             for name in EMBEDDERS:
                 try:
-                    _embedder, _embedder_name = SentenceTransformer(name, device=device), name
+                    _embedder, _embedder_name = SentenceTransformer(name, device=dev), name
                     break
                 except Exception as error:
                     errors.append(f"{name}: {error}")
@@ -192,6 +283,14 @@ def index_file(path):
     return {"mtime": path.stat().st_mtime, "excerpts": excerpts}
 
 
+def walk(folder):
+    """Every file under `folder`, skipping hidden folders and SKIP_DIRS (virtual environments, node_modules, .git...)."""
+    for root, dirs, names in os.walk(folder):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        for name in names:
+            yield Path(root) / name
+
+
 def refresh():
     """Index new or changed files in the shared folders and drop files that are gone. Returns {path: index entry}."""
     saved = load(INDEX, {})
@@ -199,9 +298,9 @@ def refresh():
     files = {}
 
     for folder in settings()["folders"]:
-        for path in Path(folder).rglob("*"):
+        for path in walk(folder):
             
-            if path.suffix.lower() not in FILE_TYPES or path.name.startswith("~$") or not path.is_file():
+            if path.suffix.lower() not in FILE_TYPES or path.name.startswith("~$") or not path.is_file() or path.stat().st_size > MAX_FILE_BYTES:
                 continue  # ~$ files are Office's temporary lock files
             entry = old.get(str(path))
             
@@ -400,7 +499,11 @@ def retrieve(question, log=False, trace=None):
     `trace`, if given, is filled with Laya's probabilities at each step (used by the benchmark). With `log`, the
     reply is recorded for the app's "Shared today" list and the decision log."""
     trace = {} if trace is None else trace
-    answer = _retrieve(question, trace)
+    with _infer_lock:
+        try:
+            answer = _retrieve(question, trace)
+        finally:
+            trim_gpu()
     if log:
         if answer.get("found"):
             now = datetime.now()
@@ -421,8 +524,8 @@ def _retrieve(question, trace):
     if not files:
         return {"found": False, "message": "No folders are shared with Metis yet."}
 
-    # 1. Folders: bge-small keeps the closest, Laya picks the likely ones.
     scores = excerpt_scores(question, files)
+    # 1. Folders: bge-small keeps the closest, Laya picks the likely ones.
     candidates_files = pick_folders(question, files, scores, trace) if FOLDER_STEP else list(scores)
 
     # 2. Files inside them: bge-small keeps SHORTLIST, Laya ranks them; the closest file by meaning is checked too.

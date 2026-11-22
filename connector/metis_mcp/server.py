@@ -25,4 +25,5 @@ def request(prompt: str) -> dict[str, Any]:
 
 if __name__ == "__main__":
     threading.Thread(target=core.agent, daemon=True).start()  # load Laya now, so the first search doesn't wait
+    core.start_idle_unloader()  # frees the models after a quiet spell
     mcp.run()  # stdio: Claude Desktop talks to Metis through this process's input and output
